@@ -6,10 +6,10 @@ Dotenv.load
 pinboard = Pinboard::Client.new(:token => ENV['PINBOARD_TOKEN'])
 
 credentials = Hatena::Bookmark::Restful::V1::Credentials.new(
-  consumer_key:        ENV['CONSUMER_KEY'],
-  consumer_secret:     ENV['CONSUMER_SECRET'],
-  access_token:        ENV['ACCESS_TOKEN'],
-  access_token_secret: ENV['ACCESS_TOKEN_SECRET']
+  consumer_key:        ENV['HATENA_CONSUMER_KEY'],
+  consumer_secret:     ENV['HATENA_CONSUMER_SECRET'],
+  access_token:        ENV['HATENA_ACCESS_TOKEN'],
+  access_token_secret: ENV['HATENA_ACCESS_TOKEN_SECRET']
 )
 
 class Hatena::Bookmark::Restful::V1
@@ -27,7 +27,7 @@ class Hatena::Bookmark::Restful::V1
     @connection ||= Faraday.new(url: 'http://api.b.hatena.ne.jp/') do |conn|
       conn.request :url_encoded
       conn.options.params_encoder = Faraday::FlatParamsEncoder
-      conn.request     :oauth, {
+      conn.request :oauth, {
         consumer_key:    @credentials.consumer_key,
         consumer_secret: @credentials.consumer_secret,
         token:           @credentials.access_token,
@@ -53,21 +53,20 @@ loop do
     params = {
       url:     b.href,
       comment: b.extended,
-      tags: b.tag
+      tags:    b.tag
     }
-    if b.shared == "no"
-      params[:private] = true
-    end
+    params[:private] = true if b.shared == 'no'
+
     begin
       hatena_client.create_bookmark(params)
     rescue => error
-      ap "Bookmark failed!!! #{b.description} - #{b.href}"
+      ap "#{Time.now}: Bookmark failed!!! #{b.description} - #{b.href}"
       ap error.message
       ap error.backtrace
     end
 
     if error.nil?
-      ap "Bookmark success!!! #{b.description} - #{b.href}"
+      ap "#{Time.now}: Bookmark success!!! #{b.description} - #{b.href}"
     end
 
     last_checked_entry_time = b.time
