@@ -1,5 +1,6 @@
 require 'bundler'
-Bundler.require(:app)
+require 'erb'
+Bundler.require(:default, :app)
 Dotenv.load
 
 set :sessions, true

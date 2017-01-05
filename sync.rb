@@ -1,6 +1,5 @@
 require 'bundler'
-require 'erb'
-Bundler.require(:sync)
+Bundler.require(:default, :sync)
 require 'hatena/bookmark/restful/v1'
 Dotenv.load
 
