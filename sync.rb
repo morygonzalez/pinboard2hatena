@@ -44,11 +44,10 @@ hatena_client = Hatena::Bookmark::Restful::V1.new(credentials)
 last_checked_entry_time ||= Time.now.utc
 
 loop do
-  ap last_checked_entry_time
   recent_bookmarks = pinboard.recent
   recent_bookmarks.reverse!
   recent_bookmarks.each do |b|
-    if last_checked_entry_time > b.time
+    if last_checked_entry_time >= b.time
       ap "skip because last_checked_entry_time is newer than b.time #{b.time}"
       next
     end
@@ -71,9 +70,9 @@ loop do
 
     if error.nil?
       ap "#{Time.now}: Bookmark success!!! #{b.description} - #{b.href}"
+      last_checked_entry_time = b.time
     end
 
-    last_checked_entry_time = b.time
     sleep 30
   end
 
