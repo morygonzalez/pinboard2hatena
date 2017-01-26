@@ -44,37 +44,42 @@ hatena_client = Hatena::Bookmark::Restful::V1.new(credentials)
 last_checked_entry_time ||= Time.now.utc
 
 loop do
-  recent_bookmarks = pinboard.recent
-  recent_bookmarks.reverse!
-  recent_bookmarks.each do |b|
-    if last_checked_entry_time >= b.time
-      ap "skip because last_checked_entry_time is newer than b.time #{b.time}"
-      next
+  begin
+    recent_bookmarks = pinboard.recent
+    recent_bookmarks.reverse!
+    recent_bookmarks.each do |b|
+      if last_checked_entry_time >= b.time
+        next
+      end
+
+      error = nil
+      params = {
+        url:     b.href,
+        comment: b.extended,
+        tags:    b.tag
+      }
+      params[:private] = true if b.shared == 'no'
+
+      begin
+        hatena_client.create_bookmark(params)
+      rescue => error
+        ap "#{Time.now}: Bookmark failed!!! #{b.description} - #{b.href}"
+        ap error.message
+        ap error.backtrace
+      end
+
+      if error.nil?
+        ap "#{Time.now}: Bookmark success!!! #{b.description} - #{b.href}"
+        last_checked_entry_time = b.time
+      end
+
+      sleep 5
     end
-
-    error = nil
-    params = {
-      url:     b.href,
-      comment: b.extended,
-      tags:    b.tag
-    }
-    params[:private] = true if b.shared == 'no'
-
-    begin
-      hatena_client.create_bookmark(params)
-    rescue => error
-      ap "#{Time.now}: Bookmark failed!!! #{b.description} - #{b.href}"
-      ap error.message
-      ap error.backtrace
-    end
-
-    if error.nil?
-      ap "#{Time.now}: Bookmark success!!! #{b.description} - #{b.href}"
-      last_checked_entry_time = b.time
-    end
-
-    sleep 30
+  rescue NoMethodError, SocketError, Net::OpenTimeout => e
+    ap "#{Time.now}: #{e.inspect}"
+    sleep 60 * 10
+    next
   end
 
-  sleep 60 * 5
+  sleep 60 * 10
 end
