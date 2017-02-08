@@ -12,33 +12,6 @@ credentials = Hatena::Bookmark::Restful::V1::Credentials.new(
   access_token_secret: ENV['HATENA_ACCESS_TOKEN_SECRET']
 )
 
-class Hatena::Bookmark::Restful::V1
-  def create_bookmark(bookmark_params)
-    res = connection.post("/#{api_version}/my/bookmark") {|req|
-      req.params = bookmark_params
-    }
-    attrs = JSON.parse(res.body)
-    bookmark = Bookmark.new_from_response(attrs)
-  end
-
-  private
-
-  def connection
-    @connection ||= Faraday.new(url: 'http://api.b.hatena.ne.jp/') do |conn|
-      conn.request :url_encoded
-      conn.options.params_encoder = Faraday::FlatParamsEncoder
-      conn.request :oauth, {
-        consumer_key:    @credentials.consumer_key,
-        consumer_secret: @credentials.consumer_secret,
-        token:           @credentials.access_token,
-        token_secret:    @credentials.access_token_secret
-      }
-      conn.headers['User-Agent'] = 'Hatena::Bookmark::Restful Client'
-      conn.adapter Faraday.default_adapter
-    end
-  end
-end
-
 hatena_client = Hatena::Bookmark::Restful::V1.new(credentials)
 
 last_checked_entry_time ||= Time.now.utc
