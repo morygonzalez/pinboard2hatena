@@ -14,7 +14,11 @@ credentials = Hatena::Bookmark::Restful::V1::Credentials.new(
 
 hatena_client = Hatena::Bookmark::Restful::V1.new(credentials)
 
-last_checked_entry_time ||= Time.now.utc
+last_checked_entry_time ||= if ENV['LAST_CHECKED'] && ENV['LAST_CHECKED'] != ''
+                              Time.parse(ENV['LAST_CHECKED']).utc
+                            else
+                              Time.now.utc
+                            end
 
 loop do
   begin
