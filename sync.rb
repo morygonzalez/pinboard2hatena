@@ -1,7 +1,12 @@
 require 'bundler'
 Bundler.require(:default, :sync)
+require 'logger'
 require 'hatena/bookmark/restful/v1'
 Dotenv.load
+
+Process.daemon(true, true)
+
+logger = Logger.new(File.expand_path(File.join(File.dirname(__FILE__), 'log', 'sync.log')))
 
 pinboard = Pinboard::Client.new(:token => ENV['PINBOARD_TOKEN'])
 
@@ -20,6 +25,26 @@ last_checked_entry_time ||= if ENV['LAST_CHECKED'] && ENV['LAST_CHECKED'] != ''
                               Time.now.utc
                             end
 
+Signal.trap('QUIT') {
+  t = Thread.new do
+    logger.info "Server #{Process.pid} killed"
+    logger.close
+  end
+  t.join
+  Process.kill 'QUIT', $$
+}
+
+Signal.trap('TERM') {
+  t = Thread.new do
+    logger.info "Server #{Process.pid} killed"
+    logger.close
+  end
+  t.join
+  Process.kill 'QUIT', $$
+}
+
+logger.info "Started process #{Process.pid}"
+
 loop do
   begin
     recent_bookmarks = pinboard.recent
@@ -37,23 +62,25 @@ loop do
       }
       params[:private] = true if b.shared == 'no'
 
+      logger.debug params
+
       begin
         hatena_client.create_bookmark(params)
       rescue => error
-        ap "#{Time.now}: Bookmark failed!!! #{b.description} - #{b.href}"
-        ap error.message
-        ap error.backtrace
+        logger.error "Bookmark failed!!! #{b.description} - #{b.href}"
+        logger.error error.message
+        logger.error error.backtrace
       end
 
       if error.nil?
-        ap "#{Time.now}: Bookmark success!!! #{b.description} - #{b.href}"
+        logger.info "Bookmark success!!! #{b.description} - #{b.href}"
         last_checked_entry_time = b.time
       end
 
       sleep 5
     end
   rescue NoMethodError, SocketError, Net::OpenTimeout => e
-    ap "#{Time.now}: #{e.inspect}"
+    logger.warn "#{e.inspect}"
     sleep 60 * 10
     next
   end
