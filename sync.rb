@@ -66,15 +66,20 @@ loop do
 
       begin
         hatena_client.create_bookmark(params)
+      rescue JSON::ParserError
+        params.delete(:tags)
+        hatena_client.create_bookmark(params)
       rescue => error
         logger.error "Bookmark failed!!! #{b.description} - #{b.href}"
         logger.error error.message
         logger.error error.backtrace
+      ensure
+        last_checked_entry_time = b.time
       end
 
       if error.nil?
         logger.info "Bookmark success!!! #{b.description} - #{b.href}"
-        last_checked_entry_time = b.time
+        # last_checked_entry_time = b.time
       end
 
       sleep 5
